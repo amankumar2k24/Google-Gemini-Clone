@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id              String       @id @default(uuid())
+  mobileNumber    String       @unique
+  name            String?
+  password        String?
+  subscriptionTier SubscriptionTier @default(BASIC)
+  subscriptionId  String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  chatrooms       Chatroom[]
+  otps            OTP[]
+  usageStats      UsageStats[]
+}
+
+model OTP {
+  id          String   @id @default(uuid())
+  userId      String
+  code        String
+  expiresAt   DateTime
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+}
+
+model Chatroom {
+  id          String    @id @default(uuid())
+  userId      String
+  title       String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  user        User      @relation(fields: [userId], references: [id])
+  messages    Message[]
+  
+  @@index([userId])
+}
+
+model Message {
+  id          String    @id @default(uuid())
+  chatroomId  String
+  content     String    @db.Text
+  role        MessageRole
+  createdAt   DateTime  @default(now())
+  
+  chatroom    Chatroom  @relation(fields: [chatroomId], references: [id])
+  
+  @@index([chatroomId])
+}
+
+model UsageStats {
+  id          String    @id @default(uuid())
+  userId      String
+  date        DateTime  @db.Date
+  promptCount Int       @default(0)
+  
+  user        User      @relation(fields: [userId], references: [id])
+  
+  @@unique([userId, date])
+  @@index([userId])
+}
+
+enum SubscriptionTier {
+  BASIC
+  PRO
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
